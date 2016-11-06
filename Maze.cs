@@ -32,27 +32,52 @@ public class Maze : MonoBehaviour {
 	}
 
     //gameManager的主调用入口
-    public void Generate()
+    public IEnumerator Generate()
     {
         WaitForSeconds delay = new WaitForSeconds(stepDelay);   //创建延时时间
         cellArray = new MazeCell[sizeX, sizeY];     //cell数组整体
         wallArray = new Wall[sizeX, sizeY];
         cellList=new List<MazeCell>();              //cell链表用于入栈谈栈
-        DoFirstStep();
-               
+
+        //从0，0点开始创建一个cube并删除北边墙
+        MazeCell bufCell = CreateCell(new Vector2(0, 0));
+        Wall bufWall = CreateWall(bufCell);
+        DestoryDirWall(bufWall, "South");
+        
+        //当list里面没有cube时候结束迷宫
+        while (cellList.Count > 0)
+        {
+            yield return delay;
+            bufCell= DonextStep(bufCell);
+            
+        }
+        Debug.Log(cellCountM);             
     }
 
-
-    public void DoFirstStep()
+    public MazeCell DonextStep(MazeCell bufCell)
     {
-        //从0，0点开始创建一个cube并删除北边墙
-        MazeCell bufCell = CreateCell(new Vector2(0,0));
-        Wall  bufWall = CreateWall(bufCell);
-        DestoryDirWall(bufWall, "South");
 
+            if (bufCell.flag < 4)
+            {
+                return bufCell = GetNextCell(bufCell);
+                
+            }
+            else
+            {
+                cellList.RemoveAt(cellList.Count - 1);
+                GetCellNeighbor(cellList[cellList.Count - 1]);
+                return bufCell = GetNextCell(cellList[cellList.Count - 1]);
+            }
+        
+    }
+
+    /*暂时用不上了
+    public void DoFirstStep(MazeCell bufCell)
+    {
         //当list里面没有cube时候结束迷宫
         while (cellList.Count != 0)
         {
+            
             if (bufCell.flag < 4)
             {
                 bufCell = GetNextCell(bufCell);
@@ -63,9 +88,12 @@ public class Maze : MonoBehaviour {
                 GetCellNeighbor(cellList[cellList.Count - 1]);
                 bufCell=GetNextCell(cellList[cellList.Count - 1]);
             }
+            
         }
         Debug.Log(cellCountM);
     }
+    */
+
 
     public MazeCell GetNextCell(MazeCell cell)  //递归创建当前cell的可前进的邻居，如果flag=4(即四面都不空)弹出栈，一直到遇到包含可走边的cell
     {
@@ -90,8 +118,6 @@ public class Maze : MonoBehaviour {
     {
 
         int bufDir = GetRandomDirection(cell);
-        Debug.Log(cell.name + "方向走：" + bufDir);
-
         DestoryDirWall(wallArray[cell.x,cell.y], dircetion.dircectionWall[bufDir]);
 
         int buffx = 0;
@@ -103,6 +129,7 @@ public class Maze : MonoBehaviour {
         if (cell2 != null)
         {
             Wall bufW = CreateWall(cell2);
+        
             DestoryDirWall(bufW, dircetion.dircectionWall[GetDestoryWallDir(bufDir)]);          //在这里删除墙!!
 
             //GetCellNeighbor(cell2);
@@ -206,7 +233,6 @@ public class Maze : MonoBehaviour {
     public Wall CreateWall(MazeCell cell)
     {
             Wall newWall = Instantiate(mazeWall) as Wall;
-            Debug.Log(cell.x +"," + cell.y);
             wallArray[cell.x, cell.y] = newWall;
             newWall.name = "mazeWall" + cell.x + "," + cell.y;
             newWall.transform.parent = cell.transform;
@@ -216,7 +242,7 @@ public class Maze : MonoBehaviour {
 
     public void DestoryDirWall(Wall wall,string dirWall)
     {
-        if(wall!=null)
-        Destroy(wall.transform.FindChild(dirWall).GetComponent<Wall>().gameObject);
+        if(wall.transform.FindChild(dirWall)!=null)
+            Destroy(wall.transform.FindChild(dirWall).GetComponent<Wall>().gameObject);
     }
 }
